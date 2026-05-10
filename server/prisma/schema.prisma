@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("member")
+  createdAt DateTime @default(now())
+
+  workspaces   WorkspaceMember[]
+  tasks        Task[]            @relation("AssignedTasks")
+  createdTasks Task[]            @relation("CreatedTasks")
+}
+
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  members WorkspaceMember[]
+  boards  Board[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  role        String    @default("member")
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+
+  @@unique([userId, workspaceId])
+}
+
+model Board {
+  id          String    @id @default(uuid())
+  name        String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId String
+  createdAt   DateTime  @default(now())
+
+  columns Column[]
+}
+
+model Column {
+  id       String @id @default(uuid())
+  name     String
+  order    Int
+  board    Board  @relation(fields: [boardId], references: [id])
+  boardId  String
+
+  tasks Task[]
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  order       Int
+  dueDate     DateTime?
+  priority    String   @default("medium")
+  createdAt   DateTime @default(now())
+
+  column   Column @relation(fields: [columnId], references: [id])
+  columnId String
+
+  assignee   User?   @relation("AssignedTasks", fields: [assigneeId], references: [id])
+  assigneeId String?
+
+  creator   User   @relation("CreatedTasks", fields: [creatorId], references: [id])
+  creatorId String
+}
